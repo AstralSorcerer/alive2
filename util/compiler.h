@@ -42,6 +42,24 @@ struct const_strip_unique_ptr {
   const_iterator end() const   { return container.end(); }
 };
 
+template <typename T>
+struct strip_unique_ptr {
+  T &container;
+  strip_unique_ptr(T &container) : container(container) {}
+
+  struct iterator {
+    typename T::iterator I;
+    iterator() {}
+    iterator(typename T::iterator I) : I(I) {}
+    auto& operator*() { return *I->get(); }
+    iterator operator++(void) { return ++I; }
+    bool operator!=(const iterator &other) const { return I != other.I; }
+  };
+
+  iterator begin() { return container.begin(); }
+  iterator end()   { return container.end(); }
+};
+
 unsigned ilog2(uint64_t n);
 // if up_power2 is true, then we do +1 for powers of 2
 // e.g. ilog2_ceil(8, false) = 3 ; ilog2_ceil(8, true) = 4

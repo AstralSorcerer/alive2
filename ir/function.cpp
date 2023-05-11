@@ -232,6 +232,16 @@ void Function::replaceInput(std::unique_ptr<Value> &&c, unsigned idx) {
   inputs[idx] = std::move(c);
 }
 
+Value& Function::getInputByName(std::string_view name) {
+  for (auto& input : inputs) {
+    if (input->getName() == name) {
+      return *input;
+    }
+  }
+
+  throw std::out_of_range(string(name) + " is not an input to function " + getName());
+}
+
 bool Function::hasReturn() const {
   for (auto &i : instrs()) {
     if (dynamic_cast<const Return *>(&i))
@@ -266,7 +276,7 @@ instr_iterator(vector<BasicBlock*>::const_iterator &&BBI,
 
 void Function::instr_iterator::next_bb() {
   if (BBI != BBE) {
-    auto BB_instrs = (*BBI)->instrs();
+    auto BB_instrs = (const_cast<const BasicBlock*>(*BBI))->instrs();
     II = BB_instrs.begin();
     IE = BB_instrs.end();
   }
@@ -278,6 +288,18 @@ void Function::instr_iterator::operator++(void) {
   while (++BBI != BBE && (*BBI)->empty())
     ;
   next_bb();
+}
+
+Instr* Function::getInstrByName(std::string_view name) {
+  for (auto& bb : BB_order) {
+    for (auto& instr : bb->instrs()) {
+      if (instr.getName() == name) {
+        return &instr;
+      }
+    }
+  }
+
+  return nullptr;
 }
 
 static void add_users(Function::UsersTy &users, Value *i, BasicBlock *bb,

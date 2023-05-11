@@ -42,6 +42,9 @@ public:
   util::const_strip_unique_ptr<decltype(m_instrs)> instrs() const {
     return m_instrs;
   }
+  util::strip_unique_ptr<decltype(m_instrs)> instrs() {
+    return m_instrs;
+  }
   Instr& back() { return *m_instrs.back(); }
   std::vector<Phi*> phis() const;
 
@@ -135,6 +138,7 @@ public:
   void addInput(std::unique_ptr<Value> &&c);
   void replaceInput(std::unique_ptr<Value> &&c, unsigned idx);
   Value &getInput(int idx) { return *inputs[idx]; }
+  Value &getInputByName(std::string_view name);
   util::const_strip_unique_ptr<decltype(inputs)> getInputs() const {
     return inputs;
   }
@@ -174,6 +178,8 @@ public:
   };
   instr_helper instrs() { return *this; }
   instr_helper instrs() const { return *this; }
+
+  Instr* getInstrByName(std::string_view name);
 
   using UsersTy = std::unordered_map<const Value*,
                                      std::set<std::pair<Value*, BasicBlock*>>>;
