@@ -25,6 +25,8 @@ public:
   virtual smt::expr getTypeConstraints(const Function &f) const = 0;
   virtual std::unique_ptr<Instr> dup(Function &f,
                                      const std::string &suffix) const = 0;
+  std::unique_ptr<Instr> deep_dup(Function &f,
+                                  const std::string &suffix) const;
 };
 
 

@@ -104,6 +104,55 @@ expr Instr::getTypeConstraints() const {
   return {};
 }
 
+std::unique_ptr<Instr> Instr::deep_dup(Function &f,
+                                       const std::string &suffix) const
+{
+  auto new_instr = dup(f, suffix);
+
+  for (auto &op : operands()) {
+    if (dynamic_cast<Input*>(op)) {
+      new_instr->rauw(*op, f.getInputByName(op->getName()));
+    } else if (dynamic_cast<UndefValue*>(op)) {
+      auto newop = make_unique<UndefValue>(op->getType());
+      new_instr->rauw(*op, *newop.get());
+      f.addUndef(std::move(newop));
+    } else if (dynamic_cast<PoisonValue*>(op)) {
+      auto newop = make_unique<PoisonValue>(op->getType());
+      new_instr->rauw(*op, *newop.get());
+      f.addConstant(std::move(newop));
+    } else if (dynamic_cast<NullPointerValue*>(op)) {
+      auto newop = make_unique<NullPointerValue>(op->getType());
+      new_instr->rauw(*op, *newop.get());
+      f.addConstant(std::move(newop));
+    } else if (auto c = dynamic_cast<IntConst*>(op)) {
+      auto newop = make_unique<IntConst>(*c);
+      new_instr->rauw(*op, *newop.get());
+      f.addConstant(std::move(newop));
+    } else if (auto c = dynamic_cast<FloatConst*>(op)) {
+      auto newop = make_unique<FloatConst>(*c);
+      new_instr->rauw(*op, *newop.get());
+      f.addConstant(std::move(newop));
+    } else if (dynamic_cast<ConstantInput*>(op)) {
+      assert(0 && "TODO");
+    } else if (dynamic_cast<ConstantBinOp*>(op)) {
+      assert(0 && "TODO");
+    } else if (dynamic_cast<ConstantFn*>(op)) {
+      assert(0 && "TODO");
+    } else if (auto op_instr = dynamic_cast<Instr*>(op)) {
+      // FIXME: support for PHI nodes (cyclic graph)
+      auto our_op_instr = f.getInstrByName(op_instr->getName());
+      if (!our_op_instr) {
+        our_op_instr =
+          &f.getFirstBB().addInstr(op_instr->deep_dup(f, suffix), true);
+      }
+      new_instr->rauw(*op, *our_op_instr);
+    } else {
+      UNREACHABLE();
+    }
+  }
+
+  return new_instr;
+}
 
 BinOp::BinOp(Type &type, string &&name, Value &lhs, Value &rhs, Op op,
              unsigned flags)
