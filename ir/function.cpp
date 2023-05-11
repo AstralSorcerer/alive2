@@ -30,21 +30,21 @@ void BasicBlock::fixupTypes(const Model &m) {
   }
 }
 
-void BasicBlock::addInstr(unique_ptr<Instr> &&i, bool push_front) {
+Instr& BasicBlock::addInstr(unique_ptr<Instr> &&i, bool push_front) {
   if (push_front)
-    m_instrs.emplace(m_instrs.begin(), std::move(i));
+    return **m_instrs.emplace(m_instrs.begin(), std::move(i));
   else
-    m_instrs.emplace_back(std::move(i));
+    return *m_instrs.emplace_back(std::move(i));
 }
 
-void BasicBlock::addInstrAt(unique_ptr<Instr> &&i, const Instr *other,
+Instr& BasicBlock::addInstrAt(unique_ptr<Instr> &&i, const Instr *other,
                             bool before) {
   for (auto I = m_instrs.begin(); true; ++I) {
     assert(I != m_instrs.end());
     if (I->get() == other) {
       if (!before)
         ++I;
-      m_instrs.emplace(I, std::move(i));
+      return **m_instrs.emplace(I, std::move(i));
       break;
     }
   }
