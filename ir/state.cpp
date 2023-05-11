@@ -607,6 +607,17 @@ const State::ValTy& State::at(const Value &val) const {
   return get<1>(values[values_map.at(&val)]);
 }
 
+
+void State::remove(const Value &val) {
+  // Replace the removed element with the last to keep the values contiguous
+  auto&& idx = values_map.find(&val);
+  auto&& last = values_map.find(values.back().first);
+  values[idx->second] = move(values.back());
+  values.pop_back();
+  last->second = idx->second;
+  values_map.erase(idx);
+}
+
 const OrExpr* State::jumpCondFrom(const BasicBlock &bb) const {
   auto &pres = predecessor_data.at(current_bb);
   auto I = pres.find(&bb);
