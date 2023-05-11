@@ -441,11 +441,13 @@ check_refinement(Errors &errs, const Transform &t, State &src_state,
   expr pre_src = pre_src_and();
   expr pre_tgt = pre_tgt_and();
 
+  dbg() << "Checking if precondition is always false" << std::endl;
   if (check_expr(axioms_expr && (pre_src && pre_tgt)).isUnsat()) {
     errs.add("Precondition is always false", false);
     return;
   }
 
+  dbg() << "Checking if source is always UB" << std::endl;
   if (config::check_if_src_is_ub &&
       check_expr(axioms_expr && fndom_a).isUnsat()) {
     errs.add("Source function is always UB", false);
@@ -454,6 +456,7 @@ check_refinement(Errors &errs, const Transform &t, State &src_state,
 
   {
     auto sink_src = src_state.sinkDomain();
+    dbg() << "Checking source reaches return" << std::endl;
     if (!sink_src.isTrue() && check_expr(axioms_expr && !sink_src).isUnsat()) {
       errs.add("The source program doesn't reach a return instruction.\n"
                "Consider increasing the unroll factor if it has loops", false);
@@ -461,6 +464,7 @@ check_refinement(Errors &errs, const Transform &t, State &src_state,
     }
 
     auto sink_tgt = tgt_state.sinkDomain();
+    dbg() << "Checking target reaches return" << std::endl;
     if (!sink_tgt.isTrue() && check_expr(axioms_expr && !sink_tgt).isUnsat()) {
       errs.add("The target program doesn't reach a return instruction.\n"
                "Consider increasing the unroll factor if it has loops", false);
@@ -509,6 +513,7 @@ check_refinement(Errors &errs, const Transform &t, State &src_state,
   };
 
 #define CHECK(fml, printer, msg) \
+  dbg() << "Checking if: " << msg << std::endl; \
   if (!check(fml, printer, msg)) \
     return
 
