@@ -6,6 +6,7 @@
 #include "util/compiler.h"
 #include "util/config.h"
 #include "util/file.h"
+#include "util/stopwatch.h"
 #include <cassert>
 #include <fstream>
 #include <iomanip>
@@ -461,6 +462,7 @@ Result Solver::check() const {
   if (print_queries)
     dbg() << "\nSMT query:\n" << Z3_solver_to_string(ctx(), s) << endl;
 
+  ScopedWatch timer([](const StopWatch& sw) { dbg() << "Took " << sw << endl; });
   tactic->check();
 
   switch (Z3_solver_check(ctx(), s)) {
