@@ -9,7 +9,11 @@
 #ifdef _MSC_VER
 # define UNREACHABLE() __assume(0)
 #elif defined(__GNUC__)
-# define UNREACHABLE() __builtin_unreachable()
+# ifdef NDEBUG
+#  define UNREACHABLE() __builtin_unreachable()
+# else
+#  define UNREACHABLE() (assert(false && "Impossible case reached"))
+# endif
 #else
 # error "unknown platform"
 #endif
