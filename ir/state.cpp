@@ -211,6 +211,17 @@ const State::ValTy& State::exec(const Value &v) {
   return get<1>(values.back());
 }
 
+const State::ValTy& State::exec_rec(const Value &v) {
+  if (const auto* instr = dynamic_cast<const Instr*>(&v)) {
+    for (auto&& op: instr->operands()) {
+      if (values_map.find(op) == values_map.end()) {
+        exec_rec(*op);
+      }
+    }
+  }
+  return exec(v);
+}
+
 static expr eq_except_padding(const Memory &m, const Type &ty, const expr &e1,
                               const expr &e2, bool ptr_compare) {
   if (ptr_compare && ty.isPtrType())

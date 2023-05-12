@@ -198,6 +198,7 @@ public:
 
   /*--- Get values or update registers ---*/
   const ValTy& exec(const Value &v);
+  const ValTy& exec_rec(const Value &v);
   const StateValue& eval(const Value &val, bool quantify_nondet);
   const StateValue& operator[](const Value &val) { return eval(val, false); }
   const StateValue& getAndAddUndefs(const Value &val);
