@@ -1319,6 +1319,20 @@ Errors TransformVerify::verify() const {
     check_refinement(errs, t, *src_state, *tgt_state, nullptr, t.src.getType(),
                      src_state->returnVal(), tgt_state->returnVal(),
                      check_each_var);
+
+    if (config::symexec_print_each_value) {
+      for (auto&& s : {&*src_state, &*tgt_state}) {
+        for (auto&& [var, val] : s->getValues()) {
+          const auto& name = var->getName();
+          dbg() << name;
+          if (name[0] == '%') {
+            dbg() << " = " << val.val;
+          }
+          dbg() << endl;
+        }
+        dbg() << endl;
+      }
+    }
   } catch (AliveException e) {
     return std::move(e);
   }

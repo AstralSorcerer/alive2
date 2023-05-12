@@ -137,6 +137,8 @@ int main(int argc, char **argv) {
         cout << '\n';
         if (correct)
           cout << "Transformation seems to be correct!\n";
+
+        t.print(cout, print_opts);
       }
     } catch (const FileIOException &e) {
       cerr << "Couldn't read the file" << endl;
