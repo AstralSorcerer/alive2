@@ -10,6 +10,7 @@
 #include "util/config.h"
 #include "util/dataflow.h"
 #include "util/errors.h"
+#include "util/sort.h"
 #include "util/stopwatch.h"
 #include "util/symexec.h"
 #include <algorithm>
@@ -20,7 +21,9 @@
 #include <numeric>
 #include <set>
 #include <sstream>
+#include <tuple>
 #include <unordered_map>
+#include <unordered_set>
 
 using namespace IR;
 using namespace smt;
@@ -1236,16 +1239,80 @@ Errors TransformVerify::verify() const {
     auto [src_state, tgt_state] = exec();
 
     if (check_each_var) {
-      for (auto &[var, val] : src_state->getValues()) {
+      vector<const Value*> id_val_map{};
+      unordered_map<const Value*, unsigned int> val_id_map{};
+      vector<unordered_set<unsigned int>> uses{};
+
+      // build adj list from uses
+      for (const auto& [var, ignore] : src_state->getValues()) {
+        unsigned int id;
+        auto at = val_id_map.find(var);
+        if (at == val_id_map.end()) {
+          id = id_val_map.size();
+          id_val_map.push_back(var);
+          val_id_map.emplace(var, id);
+        } else {
+          id = at->second;
+        }
+
+        if (const auto* instr = dynamic_cast<const Instr*>(var)) {
+          for (const auto* op : instr->operands()) {
+            unsigned int op_id;
+            auto at = val_id_map.find(op);
+            if (at == val_id_map.end()) {
+              op_id = id_val_map.size();
+              id_val_map.push_back(op);
+              val_id_map.emplace(op, op_id);
+            } else {
+              op_id = at->second;
+            }
+            if (uses.size() <= id) {
+              uses.resize(id + 1);
+            }
+            uses[id].emplace(op_id);
+          }
+        }
+      }
+
+      // get sorted list
+      vector<unsigned int> topo_order = top_sort(uses);
+      reverse(topo_order.begin(), topo_order.end());
+
+      src_state->getFn().print(dbg(), true);
+      dbg() << "Topological order for function " << src_state->getFn().getName() << ": ";
+      for (auto&& idx : topo_order) {
+        dbg() << id_val_map[idx]->getName() << ' ';
+      }
+      dbg() << endl;
+
+      // visit nodes in topo order
+
+      for (auto&& idx : topo_order) {
+        auto* var = id_val_map[idx];
+        auto& val = src_state->at(*var);
         auto &name = var->getName();
-        if (name[0] != '%' || !dynamic_cast<const Instr*>(var))
+        dbg() << "Checking refinement of " << name << endl;
+        const auto* instr = dynamic_cast<const Instr*>(var);
+        if (name[0] != '%' || !instr)
           continue;
 
-        auto &val_tgt = tgt_state->at(*tgt_instrs.at(name));
+        auto &val_tgt_instr = *tgt_instrs.at(name);
+        auto &val_tgt = tgt_state->at(val_tgt_instr);
         check_refinement(errs, t, *src_state, *tgt_state, var, var->getType(),
                          val, val_tgt, check_each_var);
         if (errs)
           return errs;
+        else {
+          dbg() << "Refinement successful, executing replacement" << endl;
+          auto refinement = val_tgt_instr.deep_dup(t.src, "");
+          auto& bb = const_cast<BasicBlock&>(t.src.bbOf(*instr));
+          auto& new_instr = bb.addInstrAt(move(refinement), instr, false);
+          t.src.rauw(*instr, new_instr);
+          bb.delInstr(instr);
+          dbg() << "Updating Alive->SMT translation for " << new_instr << endl;
+          src_state->remove(*instr);
+          src_state->exec_rec(new_instr);
+        }
       }
     }
 
