@@ -138,6 +138,8 @@ std::unique_ptr<Instr> Instr::deep_dup(Function &f,
       assert(0 && "TODO");
     } else if (dynamic_cast<ConstantFn*>(op)) {
       assert(0 && "TODO");
+    } else if (dynamic_cast<AggregateValue*>(op)) {
+      assert(0 && "TODO");
     } else if (auto op_instr = dynamic_cast<Instr*>(op)) {
       // FIXME: support for PHI nodes (cyclic graph)
       auto our_op_instr = f.getInstrByName(op_instr->getName());
