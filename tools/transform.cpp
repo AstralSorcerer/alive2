@@ -503,7 +503,9 @@ check_refinement(Errors &errs, const Transform &t, State &src_state,
   };
 
   auto check = [&](expr &&e, auto &&printer, const char *msg) {
+    assert(e.isValid());
     e = mk_fml(std::move(e));
+    assert(e.isValid());
     auto res = check_expr(e);
     if (!res.isUnsat() &&
         !error(errs, src_state, tgt_state, res, var, msg, check_each_var,
